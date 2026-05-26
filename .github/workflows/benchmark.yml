@@ -1,0 +1,39 @@
+name: "Slug performance tracker"
+concurrency:
+  group: "slug-storage"
+  cancel-in-progress: false
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+        with: 
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: "Install deps and html5lib"
+        run: |
+          pip install --upgrade pip
+          pip install "setuptools<70" wheel pyperf lxml
+          pip install -e . --no-build-isolation
+
+      - name: "Run benchmark"
+        run: python benchmarks/bench_html.py parse --fast > benchmark.txt
+
+      - name: "Call Slug"
+        uses: lixkel/slug-action@v1
+        with:
+          file: benchmark.txt
+          type: pyperf-2.7.0
